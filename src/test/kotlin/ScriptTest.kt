@@ -23,8 +23,8 @@ class ScriptTest {
       "boomdandy",
       "pukka",
       "zombuul",
-      "minion",
-      "demon",
+      "minioninfo",
+      "demoninfo",
       "dusk",
       "dawn",
     )
@@ -41,8 +41,8 @@ class ScriptTest {
       "poppygrower",
       "lilmonsta",
       "fanggu",
-      "minion",
-      "demon",
+      "minioninfo",
+      "demoninfo",
       "dusk",
       "dawn",
     )
@@ -51,13 +51,28 @@ class ScriptTest {
   @Test
   fun scriptCharListRemovesMetaEntry() {
     val inputScript =
+      """[{"id": "_meta", "logo": "https://i.postimg.cc/CKxv6qTn/whoami.png", "name": "Who Am I", "author": "Dae"}, "pixie","balloonist","dreamer"]"""
+    assertThat(Script.getRolesOnScript(Gson(), inputScript)).containsExactly(
+      "pixie",
+      "balloonist",
+      "dreamer",
+      "minioninfo",
+      "demoninfo",
+      "dusk",
+      "dawn",
+    )
+  }
+
+  @Test
+  fun scriptNewStyleParsesCorrectly() {
+    val inputScript =
       """[{"id": "_meta", "logo": "https://i.postimg.cc/CKxv6qTn/whoami.png", "name": "Who Am I", "author": "Dae"}, {"id": "pixie"}, {"id": "balloonist"}, {"id": "dreamer"}]"""
     assertThat(Script.getRolesOnScript(Gson(), inputScript)).containsExactly(
       "pixie",
       "balloonist",
       "dreamer",
-      "minion",
-      "demon",
+      "minioninfo",
+      "demoninfo",
       "dusk",
       "dawn",
     )
@@ -67,6 +82,20 @@ class ScriptTest {
   fun scriptGetMetadata_returnsMetadata() {
     val inputScript =
       """[{"id": "_meta", "logo": "https://i.postimg.cc/CKxv6qTn/whoami.png", "name": "Who Am I", "author": "Dae"}, {"id": "pixie"}, {"id": "balloonist"}, {"id": "dreamer"}]"""
+    assertThat(Script.getScriptMetadata(Gson(), inputScript)).isEqualTo(
+      Script(
+        id = "_meta",
+        logo = "https://i.postimg.cc/CKxv6qTn/whoami.png",
+        name = "Who Am I",
+        author = "Dae"
+      )
+    )
+  }
+
+  @Test
+  fun scriptGetMetadata_returnsMetadata_newStyleScript() {
+    val inputScript =
+      """[{"id": "_meta", "logo": "https://i.postimg.cc/CKxv6qTn/whoami.png", "name": "Who Am I", "author": "Dae"}, "pixie", "balloonist", "dreamer"]"""
     assertThat(Script.getScriptMetadata(Gson(), inputScript)).isEqualTo(
       Script(
         id = "_meta",

@@ -23,9 +23,10 @@ class ScriptPrinterTest {
 
   @Test
   fun printScript_empty() {
-    val printer = ScriptPrinter(null, listOf(), ImmutableTable.of(), mapOf())
+    val printer = ScriptPrinter(null, listOf(), ImmutableTable.of(), ImmutableTable.of(), mapOf())
     printer.printScript()
-    assertThat(outputStreamCaptor.toString()).isEqualTo("""
+    assertThat(outputStreamCaptor.toString()).isEqualTo(
+      """
         **__INSERT SCRIPT TITLE HERE__**
 
         __Townsfolk__
@@ -36,35 +37,34 @@ class ScriptPrinterTest {
 
         __Demons__
 
-
-
         **__WAKE ORDER__**
 
         __First Night__
 
         __Other Nights__
         
-      """.trimIndent())
+      """.trimIndent()
+    )
   }
 
   @Test
   fun printScript_happyCase() {
-    val roleMap = Role.toMap(Role.setFromJson(gson, getRoleJson()))
+    val roleMap = Role.listFromJson(gson, getRoleJson()).associateBy { it.id }
     val printer = ScriptPrinter(
       Script(id = "_meta", name = "EXAMPLE_SCRIPT_NAME", author = "somebody"),
       getScriptRoles(roleMap),
       getJinxTable(),
+      getClarificationTable(),
       roleMap
     )
     printer.printScript()
-    assertThat(outputStreamCaptor.toString()).isEqualTo("""
+    assertThat(outputStreamCaptor.toString()).isEqualTo(
+      """
     **__EXAMPLE_SCRIPT_NAME__** by somebody
-    
-    __Fabled__
-    > - **Spirit of Ivory** -- There can't be more than 1 extra evil player.
     
     __Townsfolk__
     > - **Snake Charmer** -- Each night, choose an alive player: a chosen Demon swaps characters & alignments with you & is then poisoned.
+    > - **Monk** -- Each night\*, choose a player (not yourself): they are safe from the Demon tonight.
     > - **Amnesiac** -- You do not know what your ability is. Each day, privately guess what it is: you learn how accurate you are.
     > - **Magician** -- The Demon thinks you are a Minion. Minions think you are a Demon.
     
@@ -82,13 +82,23 @@ class ScriptPrinterTest {
     > - **Fang Gu** -- Each night\*, choose a player: they die. The 1st Outsider this kills becomes an evil Fang Gu & you die instead. [+1 Outsider]
     > - **Vortox** -- Each night\*, choose a player: they die. Townsfolk abilities yield false info. Each day, if no-one is executed, evil wins.
     
+    __Travellers__
+    > - **Gangster** -- Once per day, you may choose to kill an alive neighbour, if your other alive neighbour agrees.
+    
+    __Fabled__
+    > - **Spirit of Ivory** -- There can't be more than 1 extra evil player.
     
     **__Jinxes and Clarifications__**
     
-    > - **Magician** - Some special clarification for Magician specific to playing text game.
+    __Jinxes__
     > - **Fang Gu / Scarlet Woman** - If the Fang Gu chooses an Outsider and dies, the Scarlet Woman does not become the Fang Gu.
     > - **Spy / Damsel** - Only 1 jinxed character can be in play.
     > - **Spy / Magician** - When the Spy sees the Grimoire, the Demon and Magician's character tokens are removed.
+    
+    __Clarifications__
+    > - **Snake Charmer** - On the first night, the snake charmer will pick before evil info.
+    > - **Fang Gu / Monk** - An Outsider chosen by the Monk cannot be jumped to.
+    > - **Vortox / Monk** - A player protected by the Monk would get correct information in a Vortox game.
     
     **__WAKE ORDER__**
     
@@ -106,6 +116,7 @@ class ScriptPrinterTest {
     __Other Nights__
     > - **DUSK**
     > - Snake Charmer
+    > - Monk
     > - Witch
     > - Scarlet Woman
     > - Fang Gu
@@ -116,7 +127,8 @@ class ScriptPrinterTest {
     > - Spy
     > - **DAWN**
 
-    """.trimIndent())
+    """.trimIndent()
+    )
   }
 
   private fun getRoleJson(): String {
@@ -130,6 +142,33 @@ class ScriptPrinterTest {
             "No extra evil"
           ],
           "ability": "There can't be more than 1 extra evil player."
+        },
+       {
+        "id": "gangster",
+        "name": "Gangster",
+        "team": "traveler",
+        "setup": false,
+        "ability": "Once per day, you may choose to kill an alive neighbour, if your other alive neighbour agrees.",
+        "flavour": "I like your shoes. It would be such a shame if you had a little accident, and they got ruined. Now that you mention it, I like your cufflinks too.",
+        "urls": {
+          "token": "/token/gangster.png",
+          "icon": "/icon/gangster.png",
+          "wiki": "https://wiki.bloodontheclocktower.com/Gangster"
+          }
+       },
+        {
+          "id": "monk",
+          "name": "Monk",
+          "edition": "tb",
+          "team": "townsfolk",
+          "standardAmyOrder": 32,
+          "otherNight": 12,
+          "otherNightReminder": "The previously protected player is no longer protected. The Monk points to a player not themself. Mark that player 'Protected'.",
+          "reminders": [
+            "Protected"
+          ],
+          "setup": false,
+          "ability": "Each night*, choose a player (not yourself): they are safe from the Demon tonight."
         },
         {
           "id":"snakecharmer",
@@ -145,7 +184,8 @@ class ScriptPrinterTest {
             "Poisoned"
           ],
           "setup":false,
-          "ability":"Each night, choose an alive player: a chosen Demon swaps characters & alignments with you & is then poisoned."
+          "ability":"Each night, choose an alive player: a chosen Demon swaps characters & alignments with you & is then poisoned.",
+          "textGameClarification": "On the first night, the snake charmer will pick before evil info."
         },
         {
           "id":"amnesiac",
@@ -169,8 +209,7 @@ class ScriptPrinterTest {
           "standardAmyOrder":52,
           "firstNight":5,
           "setup":false,
-          "ability":"The Demon thinks you are a Minion. Minions think you are a Demon.",
-          "textGameClarification":"Some special clarification for Magician specific to playing text game."
+          "ability":"The Demon thinks you are a Minion. Minions think you are a Demon."
         },
         {
           "id":"damsel",
@@ -282,23 +321,23 @@ class ScriptPrinterTest {
           "ability": "If there are 5 or more players alive & the Demon dies, you become the Demon. (Travellers don’t count)"
         },
         {
-          "id": "minion",
-          "name": "**MINION INFO**",
+          "id": "minioninfo",
+          "name": "Minion Info",
           "firstNight": 6
         },
         {
-          "id": "demon",
-          "name": "**DEMON INFO**",
+          "id": "demoninfo",
+          "name": "Demon Info",
           "firstNight": 9
         },
         {
           "id": "dusk",
-          "name": "**DUSK**",
+          "name": "Dusk",
           "otherNight": 1
         },
         {
           "id": "dawn",
-          "name": "**DAWN**",
+          "name": "Dawn",
           "firstNight": 53,
           "otherNight": 73
         }
@@ -308,9 +347,10 @@ class ScriptPrinterTest {
 
   private fun getScriptRoles(roleMap: Map<String, Role>): List<Role> {
     val json =
-      """[{"id": "spiritofivory"}, {"id":"vortox"},{"id":"amnesiac"},{"id":"snake_charmer"},{"id":"spy"},{"id":"damsel"},{"id":"barber"},{"id":"boomdandy"},{"id":"witch"},{"id":"magician"},{"id":"scarlet_woman"},{"id":"fang_gu"}]"""
+      """[{"id": "spiritofivory"}, "gangster", {"id":"vortox"},{"id":"amnesiac"},{"id":"snake_charmer"},{"id":"spy"},{"id":"damsel"},{"id":"barber"},{"id":"boomdandy"},{"id":"witch"},{"id":"magician"},{"id":"scarlet_woman"},{"id":"fang_gu"},"monk"]"""
     val charList = Script.getRolesOnScript(gson, json)
-    return charList.map { checkNotNull(roleMap[it]) {"Couldn't find $it in $roleMap"} }.sortedBy { it.standardAmyOrder }
+    return charList.map { checkNotNull(roleMap[it]) { "Couldn't find $it in $roleMap" } }
+      .sortedBy { it.standardAmyOrder }
   }
 
   private fun getJinxTable(): ImmutableTable<String, String, Jinx> {
@@ -321,5 +361,14 @@ class ScriptPrinterTest {
       |]""".trimMargin()
     val jinxes = Jinx.listFromJson(gson, json)
     return Jinx.toTable(jinxes)
+  }
+
+  private fun getClarificationTable(): ImmutableTable<String, String, Jinx> {
+    val json = """[
+      |{"role1": "Fang Gu", "role2": "Monk", "reason": "An Outsider chosen by the Monk cannot be jumped to."},
+      |{"role1": "Vortox", "role2": "Monk", "reason": "A player protected by the Monk would get correct information in a Vortox game."}
+      |]""".trimMargin()
+    val interactions = Jinx.listFromJson(gson, json)
+    return Jinx.toTable(interactions)
   }
 }

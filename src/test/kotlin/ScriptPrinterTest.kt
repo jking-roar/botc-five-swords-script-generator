@@ -1,7 +1,11 @@
+
 import com.google.common.collect.ImmutableTable
 import com.google.common.truth.Truth.assertThat
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+import models.Jinx
+import models.Role
+import models.Script
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -75,7 +79,7 @@ class ScriptPrinterTest {
     __Minions__
     > - **Witch** -- Each night, choose a player: if they nominate tomorrow, they die. If just 3 players live, you lose this ability.
     > - **Spy** -- Each night, you see the Grimoire. You might register as good & as a Townsfolk or Outsider, even if dead.
-    > - **Scarlet Woman** -- If there are 5 or more players alive & the Demon dies, you become the Demon. (Travellers don’t count)
+    > - **Scarlet Woman** -- If there are 5 or more players alive & the Demon dies, you become the Demon. (Travellers don't count)
     > - **Boomdandy** -- If you are executed, all but 3 players die. 1 minute later, the player with the most players pointing at them dies.
     
     __Demons__
@@ -318,7 +322,7 @@ class ScriptPrinterTest {
             "Demon"
           ],
           "setup": false,
-          "ability": "If there are 5 or more players alive & the Demon dies, you become the Demon. (Travellers don’t count)"
+          "ability": "If there are 5 or more players alive & the Demon dies, you become the Demon. (Travellers don't count)"
         },
         {
           "id": "minioninfo",
@@ -349,15 +353,15 @@ class ScriptPrinterTest {
     val json =
       """[{"id": "spiritofivory"}, "gangster", {"id":"vortox"},{"id":"amnesiac"},{"id":"snake_charmer"},{"id":"spy"},{"id":"damsel"},{"id":"barber"},{"id":"boomdandy"},{"id":"witch"},{"id":"magician"},{"id":"scarlet_woman"},{"id":"fang_gu"},"monk"]"""
     val charList = Script.getRolesOnScript(gson, json)
-    return charList.map { checkNotNull(roleMap[it]) { "Couldn't find $it in $roleMap" } }
+    return charList.map { roleMap[it.id.normalize()] ?: it }
       .sortedBy { it.standardAmyOrder }
   }
 
   private fun getJinxTable(): ImmutableTable<String, String, Jinx> {
     val json = """[
-      |{"role1": "fanggu", "role2": "scarletwoman", "reason": "If the Fang Gu chooses an Outsider and dies, the Scarlet Woman does not become the Fang Gu."},
-      |{"role1": "spy", "role2": "damsel", "reason": "Only 1 jinxed character can be in play."},
-      |{"role1": "spy", "role2": "magician", "reason": "When the Spy sees the Grimoire, the Demon and Magician's character tokens are removed."}
+      |{"id": "fanggu", "jinxes": [{"id": "scarletwoman", "reason": "If the Fang Gu chooses an Outsider and dies, the Scarlet Woman does not become the Fang Gu."}]},
+      |{"id": "spy", "jinxes": [{"id": "damsel", "reason": "Only 1 jinxed character can be in play."},
+                               |{"id": "magician", "reason": "When the Spy sees the Grimoire, the Demon and Magician's character tokens are removed."}]}
       |]""".trimMargin()
     val jinxes = Jinx.listFromJson(gson, json)
     return Jinx.toTable(jinxes)
@@ -365,8 +369,8 @@ class ScriptPrinterTest {
 
   private fun getClarificationTable(): ImmutableTable<String, String, Jinx> {
     val json = """[
-      |{"role1": "Fang Gu", "role2": "Monk", "reason": "An Outsider chosen by the Monk cannot be jumped to."},
-      |{"role1": "Vortox", "role2": "Monk", "reason": "A player protected by the Monk would get correct information in a Vortox game."}
+      |{"id": "Fang Gu", "jinxes": [{"id": "Monk", "reason": "An Outsider chosen by the Monk cannot be jumped to."}]},
+      |{"id": "Vortox", "jinxes": [{"id": "Monk", "reason": "A player protected by the Monk would get correct information in a Vortox game."}]}
       |]""".trimMargin()
     val interactions = Jinx.listFromJson(gson, json)
     return Jinx.toTable(interactions)

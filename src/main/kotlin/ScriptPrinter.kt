@@ -1,10 +1,13 @@
-import Role.Edition.SPECIAL
-import Role.Type.DEMON
-import Role.Type.FABLED
-import Role.Type.MINION
-import Role.Type.OUTSIDER
-import Role.Type.TOWNSFOLK
-import Role.Type.TRAVELLER
+import models.Jinx
+import models.Role
+import models.Role.Edition.SPECIAL
+import models.Role.Type.DEMON
+import models.Role.Type.FABLED
+import models.Role.Type.MINION
+import models.Role.Type.OUTSIDER
+import models.Role.Type.TOWNSFOLK
+import models.Role.Type.TRAVELLER
+import models.Script
 import com.google.common.collect.Table
 
 class ScriptPrinter(
@@ -146,7 +149,7 @@ class ScriptPrinter(
   }
 
   private fun getDemonRoles(): List<Role> {
-    return script.filter { it.type == DEMON && it.edition != SPECIAL}
+    return script.filter { it.type == DEMON && it.edition != SPECIAL }
   }
 
   private fun getInteractions(interactionTable: Table<String, String, Jinx>): List<Jinx> {
@@ -161,14 +164,14 @@ class ScriptPrinter(
   }
 
   private fun getFirstNightWakers(): List<String> {
-    return script.filterNot { it.firstNight == null }.sortedBy { it.firstNight }.map {
+    return script.filter { (it.firstNight ?: 0) > 0 }.sortedBy { it.firstNight }.map {
       renamePlaceholders(it.name) ?: throw IllegalStateException("Name needed for role $it")
     }
   }
 
 
   private fun getOtherNightWakers(): List<String> {
-    return script.filterNot { it.otherNight == null }.sortedBy { it.otherNight }.map {
+    return script.filter { (it.otherNight ?: 0) > 0 }.sortedBy { it.otherNight }.map {
       renamePlaceholders(it.name) ?: throw IllegalStateException("Name needed for role $it")
     }
   }
